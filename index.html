@@ -148,7 +148,7 @@ label.f{display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--mu
 
 /* nav */
 nav{position:fixed;left:0;right:0;bottom:0;background:#121623;border-top:1px solid var(--line);padding-bottom:env(safe-area-inset-bottom,0px);padding-left:max(8px,env(safe-area-inset-left,0px));padding-right:max(8px,env(safe-area-inset-right,0px));z-index:5}
-nav .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(5,1fr)}
+nav .in{max-width:560px;margin:0 auto;display:grid;grid-template-columns:repeat(6,1fr)}
 nav button{padding:12px 0 10px;font-family:var(--pix);font-size:11px;color:var(--muted);display:flex;flex-direction:column;align-items:center;gap:4px}
 nav button svg{width:20px;height:20px}
 nav button.on{color:var(--gold)}
@@ -192,16 +192,15 @@ const STATS=[['str','Strength'],['end','Endurance'],['int','Intelligence'],['foc
 const SN=Object.fromEntries(STATS);
 const TIERS={easy:{xp:10,coins:5,label:'Easy'},medium:{xp:25,coins:10,label:'Medium'},hard:{xp:40,coins:20,label:'Hard'}};
 const DEFAULT_QUESTS=[
- {id:'q1',name:'Wake up on time',stat:'dis',tier:'easy',slot:'morning'},
- {id:'q2',name:'Drink water',stat:'end',tier:'easy',slot:'morning'},
- {id:'q3',name:'Read for 10 minutes',stat:'wis',tier:'easy',slot:'morning'},
- {id:'q4',name:'Work out for 30+ minutes',stat:'str',tier:'hard',slot:'morning'},
- {id:'q5',name:'Code for 45 minutes',stat:'int',tier:'hard',slot:'evening'},
- {id:'q6',name:'Phone-free study, 25 minutes',stat:'foc',tier:'medium',slot:'evening'},
- {id:'q7',name:'Walk for 20 minutes',stat:'end',tier:'medium',slot:'evening'},
- {id:'q8',name:'No junk food today',stat:'dis',tier:'medium',slot:'evening'},
- {id:'q9',name:'Plan tomorrow',stat:'dis',tier:'easy',slot:'evening'},
- {id:'q10',name:'Write your daily reflection',stat:'wis',tier:'easy',slot:'evening'}
+ {id:'q1',name:'Wake up and follow my planned routine',stat:'dis',tier:'easy',slot:'morning'},
+ {id:'q2',name:'Read for 10–15 minutes',stat:'wis',tier:'easy',slot:'morning'},
+ {id:'q3',name:'Follow today’s movement plan (training or recovery)',stat:'end',tier:'medium',slot:'morning'},
+ {id:'q4',name:'Focused coding session — 50 minutes',stat:'int',tier:'hard',slot:'evening'},
+ {id:'q5',name:'Speaking practice — 10 minutes',stat:'foc',tier:'easy',slot:'evening'},
+ {id:'q6',name:'Eat according to my nutrition plan',stat:'dis',tier:'medium',slot:'evening'},
+ {id:'q7',name:'Protect my recreational screen-time limit',stat:'foc',tier:'medium',slot:'evening'},
+ {id:'q8',name:'Complete one anime shop task',stat:'int',tier:'medium',slot:'evening'},
+ {id:'q9',name:'Plan tomorrow and reflect',stat:'wis',tier:'easy',slot:'evening'}
 ];
 const CLASSES={
  hybrid:{name:'Hybrid',desc:'+10% Strength and Intelligence XP',b:{str:.10,int:.10}},
@@ -328,14 +327,14 @@ const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'
 
 /* ---------- state ---------- */
 let storageOK=true;
-function fresh(){const t=todayKey();return{v:1,start:t,last:t,cls:'hybrid',hard:true,streakRule:1,sound:true,xp:0,coins:0,
+function fresh(){const t=todayKey();return{v:1,start:t,last:t,cls:'scholar',hard:false,streakRule:.8,sound:true,xp:0,coins:0,
  statXp:{str:0,end:0,int:0,foc:0,dis:0,wis:0},quests:DEFAULT_QUESTS.map(q=>Object.assign({},q)),days:{},inv:[],
  eq:{head:null,chest:null,hand:null,outfit:null,trinket:null},perks:[],chests:0,chestsOpened:0,ach:[],titles:['Rookie'],title:'Rookie',
- bossWins:{},weeklyClaimed:{},dungeon:null,dungeonsDone:0,redemptions:[],bestStreak:0,maxLevel:1,maxRank:0,nextId:100}}
+ bossWins:{},weeklyClaimed:{},dungeon:null,dungeonsDone:0,redemptions:[],campaignDone:{},bestStreak:0,maxLevel:1,maxRank:0,nextId:100}}
 function load(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null}catch(e){storageOK=false;return null}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){storageOK=false}}
 let S=load()||fresh();
-S=Object.assign(fresh(),S);
+S=Object.assign(fresh(),S);S.campaignDone=S.campaignDone||{};
 
 function day(k){
  if(!S.days[k])S.days[k]={done:{},pen:[],mood:0,energy:0,note:'',sx:null};
@@ -442,6 +441,7 @@ function revoke(r){S.xp=Math.max(0,S.xp-r.xp);S.statXp[r.stat]=Math.max(0,(S.sta
 let tab='today',armed=null,editing=null,shopTab='rewards';
 const A={
  tab:b=>{tab=b.t;editing=null;window.scrollTo(0,0)},
+ campToggle:b=>{S.campaignDone[b.id]=!S.campaignDone[b.id];save();},
  toggle:b=>{const d=day(todayKey());const q=S.quests.find(x=>x.id===b.id);if(!q)return;
   if(d.done[q.id]){revoke(d.done[q.id]);delete d.done[q.id]}else{d.done[q.id]=award(q.stat,q.tier)}
   checkProgress()},
@@ -507,9 +507,10 @@ const ICONS={
  hero:'<path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" fill="none" stroke="currentColor" stroke-width="2"/>',
  shop:'<path d="M5 8h14l-1 12H6zM9 8V6a3 3 0 016 0v2" fill="none" stroke="currentColor" stroke-width="2"/>',
  progress:'<path d="M4 20V10M10 20V4M16 20v-7M22 20H2" fill="none" stroke="currentColor" stroke-width="2"/>',
- settings:'<circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2" stroke="currentColor" stroke-width="2"/>'
+ settings:'<circle cx="12" cy="12" r="3" fill="none" stroke="currentColor" stroke-width="2"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M5 19l2-2M17 7l2-2" stroke="currentColor" stroke-width="2"/>',
+ campaign:'<path d="M4 20V4h16v16zM8 16l3-4 2 2 4-6" fill="none" stroke="currentColor" stroke-width="2"/>'
 };
-function nav(){document.getElementById('nav').innerHTML=[['today','Today'],['hero','Hero'],['shop','Shop'],['progress','Stats'],['settings','Setup']].map(([k,l])=>`<button data-a="tab" data-t="${k}" class="${tab===k?'on':''}" aria-label="${l}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${l}</button>`).join('')}
+function nav(){document.getElementById('nav').innerHTML=[['today','Today'],['campaign','Campaign'],['hero','Hero'],['shop','Shop'],['progress','Stats'],['settings','Setup']].map(([k,l])=>`<button data-a="tab" data-t="${k}" class="${tab===k?'on':''}" aria-label="${l}"><svg viewBox="0 0 24 24">${ICONS[k]}</svg>${l}</button>`).join('')}
 
 function statusPanel(){
  const L=levelOf(S.xp),lo=xpForLevel(L),hi=xpForLevel(L+1);const R=rankIdx(S.xp),rk=RANKS[R],nr=RANKS[R+1];
@@ -621,6 +622,50 @@ function radarSVG(){
  STATS.forEach(([s,n],i)=>{const p=pt(i,1.28);g+=`<text x="${p[0]}" y="${p[1]}" fill="#8d93a9" font-size="11" text-anchor="middle" dominant-baseline="middle" font-family="Chakra Petch, sans-serif">${n} ${vals[i]}</text>`});
  return `<svg viewBox="0 0 260 220" role="img" aria-label="Stat radar">${g}</svg>`;
 }
+
+function viewCampaign(){
+ const weeks=[
+ ['Character creation','Map remaining coding modules, assignments and deadlines. Record a one-minute speaking sample and your fitness baseline.'],
+ ['Consistency test','Complete at least four coding sessions. Establish manageable strength, walking and nutrition routines.'],
+ ['Error hunter','Solve coding exercises independently and explain one difficult concept in your own words.'],
+ ['First checkpoint','Review course progress, weight trend, training log, screen time and first month of content.'],
+ ['Independent builder','Create a small feature or program without following a complete solution.'],
+ ['Voice trial','Deliver a clear two-minute explanation and compare it with your Week 1 recording.'],
+ ['Discipline gate','Respect your recreational social-media limit on most planned days.'],
+ ['Prototype','Finish a small working coding project or a substantial independent component.'],
+ ['Merchant audit','Identify your best-performing content and choose one evidence-based improvement.'],
+ ['Course conqueror','Complete a substantial course milestone and map the remaining work.'],
+ ['Final build','Polish your project, review weak topics and prepare a five-minute presentation.'],
+ ['Season boss','Compare baseline and final metrics, demonstrate coding and speaking progress, and plan Season 2.']
+ ];
+ const done=weeks.filter((w,i)=>S.campaignDone['w'+(i+1)]).length;
+ let h=`<section class="panel notch"><h2>Season 1 <span class="r muted">12-week campaign</span></h2><div class="lvl">THE REAWAKENING</div><p class="muted" style="margin:0">Primary quests: finish coding and improve communication. Secondary quests: body composition, strength, jump power and boxing. Maintain the anime shop without letting it consume study time.</p><div class="meter-label"><span>Bosses defeated</span><span>${done} / 12</span></div><div class="bar gold"><i style="width:${done/12*100}%"></i></div></section>`;
+ h+=`<section class="panel"><h2>Character build</h2><div class="stats">
+ <div class="stat"><div class="row"><span>Scholar</span><span class="pix">MAIN</span></div><span class="muted" style="font-size:12px">Coding course + independent project</span></div>
+ <div class="stat"><div class="row"><span>Communicator</span><span class="pix">MAIN</span></div><span class="muted" style="font-size:12px">Daily speaking drills + weekly real-world challenge</span></div>
+ <div class="stat"><div class="row"><span>Warrior</span><span class="pix">BUILD</span></div><span class="muted" style="font-size:12px">3 manageable strength sessions, boxing technique, gradual jump preparation</span></div>
+ <div class="stat"><div class="row"><span>Merchant</span><span class="pix">MAINTAIN</span></div><span class="muted" style="font-size:12px">Shop operations + 3 short videos per week repurposed to both platforms</span></div>
+ </div></section>`;
+ h+=`<section class="panel"><h2>Weekly boss battles</h2><span class="muted" style="font-size:13px">Check off a boss only when the milestone is genuinely complete. If the course workload needs longer, adjust the deadline rather than rushing comprehension.</span>`;
+ weeks.forEach((w,i)=>{const id='w'+(i+1),isDone=!!S.campaignDone[id];h+=`<button class="quest ${isDone?'done':''}" data-a="campToggle" data-id="${id}" aria-pressed="${isDone}"><span class="box">${isDone?'✓':''}</span><span class="nm"><span>WEEK ${String(i+1).padStart(2,'0')} · ${w[0]}</span><span>${w[1]}</span></span><span class="rw">${isDone?'CLEARED':'BOSS'}</span></button>`});
+ h+=`</section><section class="panel"><h2>Weekly campaign map</h2>
+ ${[['MON','Strength A · 50m coding · speaking · shop task'],['TUE','Boxing technique · 50m coding · speaking · content'],['WED','Strength B · coding exercises · shop improvement'],['THU','Recovery walk · coding · speaking · film/edit'],['FRI','Strength C · coding · customer/shop tasks'],['SAT','Easy cardio or prepared jump practice · coding project · batch content'],['SUN','Rest/recovery · weekly review · plan next week']].map(d=>`<div class="item"><div class="d"><span>${d[0]}</span><small>${d[1]}</small></div></div>`).join('')}
+ <span class="muted" style="font-size:12px">Flexible template: split work into blocks, shorten optional tasks on busy days, and preserve sleep and recovery.</span></section>`;
+ h+=`<section class="panel"><h2>Skill trees</h2>
+ <div class="item"><div class="d"><span>CODING · Map → Practice → Build → Ship</span><small>Five focused sessions per week. Each session: 5m recall, 30m learning, 10m independent work, 5m notes.</small></div></div>
+ <div class="item"><div class="d"><span>SPEAKING · Record → Structure → Converse → Present</span><small>10m daily: read aloud, explain in your own words, speak without a script, review one improvement. Use Point–Reason–Example–Point.</small></div></div>
+ <div class="item"><div class="d"><span>PHYSIQUE · Move → Strength → Progress</span><small>Begin with manageable full-body strength work and comfortable walking. Track weekly weight averages. Eat balanced meals with protein, fruit and vegetables.</small></div></div>
+ <div class="item"><div class="d"><span>DUNK · Measure → Strengthen → Land → Jump</span><small>First build leg strength and landing control. Introduce low-volume jumps only when pain-free and prepared; dunking is a multi-season goal.</small></div></div>
+ <div class="item"><div class="d"><span>BOXING · Guard → Footwork → Technique → Defense</span><small>Rebuild fundamentals with controlled shadowboxing or coaching. Do not rush into hard sparring.</small></div></div>
+ <div class="item"><div class="d"><span>MERCHANT · Operate → Publish → Measure → Improve</span><small>Keep orders and customer care handled. Publish about 3 short videos weekly, repurpose for TikTok and Reels, then review watch time, profile visits, orders and profit.</small></div></div>
+ <div class="item"><div class="d"><span>LIFESTYLE · Fuel → Focus → Recover</span><small>Plan meals, set a recreational screen-time boundary, maintain a wind-down routine, and aim for 7–9 hours of sleep if adult.</small></div></div>
+ </section><section class="panel"><h2>XP rules</h2>
+ <div class="item"><div class="d"><span>Easy · 10 XP</span><small>Reading, short speaking drill, daily planning</small></div></div>
+ <div class="item"><div class="d"><span>Medium · 25 XP</span><small>Focused coding, boxing technique, defined shop task</small></div></div>
+ <div class="item"><div class="d"><span>Hard · 40 XP</span><small>Strength session, substantial coding milestone or project deliverable</small></div></div>
+ <span class="muted" style="font-size:12px">XP rewards controllable actions. Don't double-count. No penalty backlog: missed quests do not become debt. Recovery counts as following the plan.</span></section>`;
+ return h;
+}
 function viewHero(){
  const rk=RANKS[rankIdx(S.xp)];
  let h=`<section class="panel notch"><div class="hero-top"><div class="avatar" style="--aura:${rk.c}55">${avatarSVG()}</div>
@@ -703,7 +748,7 @@ function viewSettings(){
  return h;
 }
 function render(){
- nav();const v={today:viewToday,hero:viewHero,shop:viewShop,progress:viewProgress,settings:viewSettings}[tab];
+ nav();const v={today:viewToday,campaign:viewCampaign,hero:viewHero,shop:viewShop,progress:viewProgress,settings:viewSettings}[tab];
  const ta=document.activeElement&&document.activeElement.id==='note';
  document.getElementById('app').innerHTML=v();
  if(ta){const n=document.getElementById('note');if(n){n.focus();n.selectionStart=n.selectionEnd=n.value.length}}
